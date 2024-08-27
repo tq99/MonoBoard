@@ -100,168 +100,20 @@ const CardWithDropdown = () => {
         contentContainerStyle={{ paddingBottom: 50 }}
       >
         {cards.map((card) => (
-          <Card
+          <CardComponent
             key={card.id}
-            width={300}
-            height={isCardDescriptionEditing ? 250 : 200}
-            borderRadius="$4"
-            shadowOpacity={0.2}
-            padding="$3"
-            mb="$4"
-          >
-            {/* Editable Card Title */}
-            {isCardTitleEditing ? (
-              <Input
-                onChangeText={(text) => setCardTitle(text)}
-                onBlur={() => setIsCardTitleEditing(false)}
-                onFocus={() => setIsCardTitleEditing(true)}
-                placeholder="Card Title"
-                placeholderTextColor="black"
-                borderRadius="$3"
-                backgroundColor="white"
-                padding="$3"
-                color="black"
-              />
-            ) : (
-              <YStack>
-                <Text
-                  onPress={() => setIsCardTitleEditing(true)}
-                  fontSize="$6"
-                  color="$color"
-                  ta="left"
-                  numberOfLines={1}
-                  fontWeight="bold"
-                  ellipsizeMode="tail"
-                  width="80%"
-                >
-                  {cardTitle}
-                </Text>
-              </YStack>
-            )}
-
-            {/* Editable Card Description */}
-            {isCardDescriptionEditing ? (
-              <Stack>
-                <Input
-                  onChangeText={(text) => setCardDescription(text)}
-                  onBlur={() => setIsCardDescriptionEditing(false)}
-                  onFocus={() => setIsCardDescriptionEditing(true)}
-                  placeholder="Card Description"
-                  placeholderTextColor="black"
-                  borderRadius="$3"
-                  backgroundColor="white"
-                  padding="$3"
-                  color="black"
-                  height={150}
-                />
-                <Button
-                  onPress={() => setIsCardDescriptionEditing(false)}
-                  borderRadius="$3"
-                  backgroundColor="grey"
-                  padding="$2"
-                  color="white"
-                  width={80}
-                  mt="$2"
-                >
-                  Done
-                </Button>
-              </Stack>
-            ) : (
-              <YStack>
-                <Text
-                  onPress={() => setIsCardDescriptionEditing(true)}
-                  fontSize="$4"
-                  color="$color"
-                  ta="left"
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                  width="90%"
-                  mt="$2"
-                >
-                  {cardDescription}
-                </Text>
-
-                <Button
-                  width={80}
-                  onPress={() => toggleDropdown(card.id)}
-                  borderRadius="$3"
-                  backgroundColor="white"
-                  padding="$1"
-                  mt="$2"
-                >
-                  Status
-                </Button>
-              </YStack>
-            )}
-
-            {/* Modal Dropdown */}
-            {card.showDropdown && (
-              <YStack
-                position="absolute"
-                top={0}
-                left={0}
-                right={0}
-                bottom={0}
-                zIndex={100}
-                backgroundColor="rgba(0, 0, 0, 0.5)"
-                justifyContent="center"
-                alignItems="center"
-              >
-                <YStack
-                  width={250}
-                  backgroundColor="white"
-                  padding="$4"
-                  borderRadius="$2"
-                  zIndex={101}
-                  shadowOpacity={0.2}
-                >
-                  <Text
-                    fontSize="$4"
-                    color="$color"
-                    ta="center"
-                    onPress={() => handleSelectItem(card.id, 'Todo')}
-                  >
-                    Todo
-                  </Text>
-                  <Text
-                    fontSize="$4"
-                    color="$color"
-                    ta="center"
-                    mt="$2"
-                    onPress={() => handleSelectItem(card.id, 'Progress')}
-                  >
-                    Progress
-                  </Text>
-                  <Text
-                    fontSize="$4"
-                    color="$color"
-                    ta="center"
-                    mt="$2"
-                    onPress={() => handleSelectItem(card.id, 'Completed')}
-                  >
-                    Completed
-                  </Text>
-                  <Button
-                    mt="$3"
-                    onPress={() => toggleDropdown(card.id)}
-                    borderRadius="$3"
-                    backgroundColor="grey"
-                    color="white"
-                    padding="$2"
-                  >
-                    Close
-                  </Button>
-                </YStack>
-              </YStack>
-            )}
-
-            {/* Display Selected Item */}
-            {card.selectedItem && (
-              <Text mt="$2" fontSize="$5" ta="right">
-                {card.selectedItem}
-              </Text>
-            )}
-          </Card>
+            card={card}
+            cardTitle={cardTitle}
+            cardDescription={cardDescription}
+            isCardTitleEditing={isCardTitleEditing}
+            isCardDescriptionEditing={isCardDescriptionEditing}
+            setCardTitle={setCardTitle}
+            setCardDescription={setCardDescription}
+            setIsCardTitleEditing={setIsCardTitleEditing}
+            setIsCardDescriptionEditing={setIsCardDescriptionEditing}
+            toggleDropdown={toggleDropdown}
+            handleSelectItem={handleSelectItem}
+          />
         ))}
       </ScrollView>
     </YStack>
@@ -277,3 +129,179 @@ const TabSelect = ({ theme }) => {
     </XStack>
   )
 }
+
+const CardComponent = ({
+  card,
+  cardTitle,
+  cardDescription,
+  isCardTitleEditing,
+  isCardDescriptionEditing,
+  setCardTitle,
+  setCardDescription,
+  setIsCardTitleEditing,
+  setIsCardDescriptionEditing,
+  toggleDropdown,
+  handleSelectItem,
+}) => (
+  <Card
+    width={300}
+    height={isCardDescriptionEditing ? 250 : 200}
+    borderRadius="$4"
+    shadowOpacity={0.2}
+    padding="$3"
+    mb="$4"
+  >
+    {/* Editable Card Title */}
+    {isCardTitleEditing ? (
+      <Input
+        onChangeText={(text) => setCardTitle(text)}
+        onBlur={() => setIsCardTitleEditing(false)}
+        onFocus={() => setIsCardTitleEditing(true)}
+        placeholder="Card Title"
+        placeholderTextColor="black"
+        borderRadius="$3"
+        backgroundColor="white"
+        padding="$3"
+        color="black"
+      />
+    ) : (
+      <YStack>
+        <Text
+          onPress={() => setIsCardTitleEditing(true)}
+          fontSize="$6"
+          color="$color"
+          ta="left"
+          numberOfLines={1}
+          fontWeight="bold"
+          ellipsizeMode="tail"
+          width="80%"
+        >
+          {cardTitle}
+        </Text>
+      </YStack>
+    )}
+
+    {/* Editable Card Description */}
+    {isCardDescriptionEditing ? (
+      <Stack>
+        <Input
+          onChangeText={(text) => setCardDescription(text)}
+          onBlur={() => setIsCardDescriptionEditing(false)}
+          onFocus={() => setIsCardDescriptionEditing(true)}
+          placeholder="Card Description"
+          placeholderTextColor="black"
+          borderRadius="$3"
+          backgroundColor="white"
+          padding="$3"
+          color="black"
+          height={150}
+        />
+        <Button
+          onPress={() => setIsCardDescriptionEditing(false)}
+          borderRadius="$3"
+          backgroundColor="grey"
+          padding="$2"
+          color="white"
+          width={80}
+          mt="$2"
+        >
+          Done
+        </Button>
+      </Stack>
+    ) : (
+      <YStack>
+        <Text
+          onPress={() => setIsCardDescriptionEditing(true)}
+          fontSize="$4"
+          color="$color"
+          ta="left"
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          width="90%"
+          mt="$2"
+        >
+          {cardDescription}
+        </Text>
+
+        <Button
+          width={80}
+          onPress={() => toggleDropdown(card.id)}
+          borderRadius="$3"
+          backgroundColor="white"
+          padding="$1"
+          mt="$2"
+        >
+          Status
+        </Button>
+      </YStack>
+    )}
+
+    {/* Modal Dropdown */}
+    {card.showDropdown && (
+      <YStack
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        zIndex={100}
+        backgroundColor="rgba(0, 0, 0, 0.5)"
+        justifyContent="center"
+        alignItems="center"
+      >
+        <YStack
+          width={250}
+          backgroundColor="white"
+          padding="$4"
+          borderRadius="$2"
+          zIndex={101}
+          shadowOpacity={0.2}
+        >
+          <Text
+            fontSize="$4"
+            color="$color"
+            ta="center"
+            onPress={() => handleSelectItem(card.id, 'Todo')}
+          >
+            Todo
+          </Text>
+          <Text
+            fontSize="$4"
+            color="$color"
+            ta="center"
+            mt="$2"
+            onPress={() => handleSelectItem(card.id, 'Progress')}
+          >
+            Progress
+          </Text>
+          <Text
+            fontSize="$4"
+            color="$color"
+            ta="center"
+            mt="$2"
+            onPress={() => handleSelectItem(card.id, 'Completed')}
+          >
+            Completed
+          </Text>
+          <Button
+            mt="$3"
+            onPress={() => toggleDropdown(card.id)}
+            borderRadius="$3"
+            backgroundColor="grey"
+            color="white"
+            padding="$2"
+          >
+            Close
+          </Button>
+        </YStack>
+      </YStack>
+    )}
+
+    {/* Display Selected Item */}
+    {card.selectedItem && (
+      <Text mt="$2" fontSize="$5" ta="right">
+        {card.selectedItem}
+      </Text>
+    )}
+  </Card>
+)
