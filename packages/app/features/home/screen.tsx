@@ -10,17 +10,38 @@ import {
   SwitchRouterButton,
   XStack,
   YStack,
+  Input,
 } from '@my/ui'
 import { ChevronDown, ChevronUp, X } from '@tamagui/lucide-icons'
 import { useState } from 'react'
 import { Platform } from 'react-native'
+import { signInWithEmail, signUpWithEmail } from '../../api/api'
 import { useLink } from 'solito/navigation'
 
+// import { signUpWithEmail } from '../../config/firebase-config'
+
 export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const linkTarget = pagesMode ? '/pages-example-user' : '/user'
   const linkProps = useLink({
     href: `${linkTarget}/nate`,
   })
+
+  const handleSignin = async () => {
+    let response
+    try {
+      console.log('Signing up...', JSON.stringify(email))
+      response = await signInWithEmail(email, password)
+
+      console.log('Sign-up successful:', response)
+    } catch (error) {
+      console.error('Error during sign-up:', error)
+    }
+    if (response) {
+      linkProps.onPress()
+    }
+  }
 
   return (
     <YStack f={1} jc="center" ai="center" gap="$8" p="$4" bg="$background">
@@ -43,21 +64,43 @@ export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
 
       <YStack gap="$4">
         <H1 ta="center" col="$color12">
-          Welcome to tinkerhub.
+          Welcome to Monoboard.
         </H1>
         <Paragraph col="$color10" ta="center">
-          Here's a basic starter to show navigating from one screen to another.
+          Already a user signin
         </Paragraph>
         <Separator />
-        <Paragraph ta="center">
-          This screen uses the same code on Next.js and React Native.
-        </Paragraph>
+        <Input
+          onChangeText={(text) => {
+            const email = String(text)
+            setEmail(email)
+            console.log(email)
+          }}
+          placeholder="Email"
+          placeholderTextColor="black"
+          borderRadius="$3"
+          backgroundColor="white"
+          padding="$3"
+          color="black"
+        />
+        <Input
+          onChangeText={(text) => {
+            setPassword(String(text))
+          }}
+          placeholder="Password"
+          placeholderTextColor="black"
+          borderRadius="$3"
+          backgroundColor="white"
+          padding="$3"
+          color="black"
+        />
+
         <Separator />
       </YStack>
 
-      <Button {...linkProps}>Link to user</Button>
+      <Button onPress={handleSignin}>Sign Up</Button>
 
-      <SheetDemo />
+      {/* <SheetDemo /> */}
     </YStack>
   )
 }

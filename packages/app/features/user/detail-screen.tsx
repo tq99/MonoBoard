@@ -15,6 +15,8 @@ import { useParams, useRouter } from 'solito/navigation'
 import React, { useState, useRef } from 'react'
 import { ScrollView as RNScrollView } from 'react-native'
 import { Platform } from 'react-native'
+import { db } from '../../config/firebase-config'
+import { collection, addDoc } from 'firebase/firestore'
 
 export function UserDetailScreen() {
   const router = useRouter()
@@ -109,6 +111,17 @@ const CardWithDropdown = ({ initialTasks, category }) => {
         card.id === id ? { ...card, selectedItem: item, showDropdown: false } : card
       )
     )
+  }
+
+  const saveCardsToFirebase = async () => {
+    try {
+      const docRef = await addDoc(collection(db, 'cards'), {
+        cards: cards, // Save the entire array
+      })
+      console.log('Document written with ID: ', docRef.id)
+    } catch (e) {
+      console.error('Error adding document: ', e)
+    }
   }
 
   // Add a new card to the list
