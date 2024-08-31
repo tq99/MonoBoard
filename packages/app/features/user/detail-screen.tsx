@@ -12,16 +12,33 @@ import {
   SelectItemParentProvider,
 } from '@my/ui'
 import { useParams, useRouter } from 'solito/navigation'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { ScrollView as RNScrollView } from 'react-native'
 import { Platform } from 'react-native'
 import { db } from '../../config/firebase-config'
-import { collection, addDoc } from 'firebase/firestore'
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  DocumentData,
+  setDoc,
+  doc,
+} from 'firebase/firestore'
+import { useEmailStore } from '../../store/store'
 
 export function UserDetailScreen() {
   const router = useRouter()
   const { id } = useParams()
   const theme = useTheme()
+  const [selectedTab, setSelectedTab] = useState('Todo')
+  const [projectName, setProjectName] = useState('')
+
+  const handleTabSelect = (tab) => {
+    setSelectedTab(tab)
+    // Perform any additional logic needed when a tab is selected
+  }
 
   if (Platform.OS === 'web') {
     return (
@@ -29,14 +46,14 @@ export function UserDetailScreen() {
         {/* Outer container to center cards */}
         <YStack width="100%" maxWidth={900} flexDirection="row" gap={10} justifyContent="center">
           {/* Inner containers to manage card layout */}
-          <YStack width="45%" flexDirection="column" gap={10}>
-            <CardWithDropdown initialTasks={tasks} category="Todo" />
+          <YStack width="50%" flexDirection="column" gap={10}>
+            <CardWithDropdown initialTasks={tasks} category="Todo" containerHeight={600} />
           </YStack>
-          <YStack width="45%" flexDirection="column" gap={10}>
-            <CardWithDropdown initialTasks={tasks} category="Progress" />
+          <YStack width="50%" flexDirection="column" gap={10}>
+            <CardWithDropdown initialTasks={tasks} category="Progress" containerHeight={600} />
           </YStack>
-          <YStack width="45%" flexDirection="column" gap={10}>
-            <CardWithDropdown initialTasks={tasks} category="Completed" />
+          <YStack width="50%" flexDirection="column" gap={10}>
+            <CardWithDropdown initialTasks={tasks} category="Completed" containerHeight={600} />
           </YStack>
         </YStack>
       </YStack>
@@ -44,8 +61,9 @@ export function UserDetailScreen() {
   }
   return (
     <YStack f={1} jc="center" ai="center" gap="$4" backgroundColor={'$background'} padding="$4">
-      <TabSelect theme={Theme} />
-      <CardWithDropdown initialTasks={tasks} category="Todo" />
+      <Input placeholder="Email" width={'100%'} onChangeText={setProjectName} />
+      <TabSelect theme={theme} onTabSelect={handleTabSelect} />
+      <CardWithDropdown containerHeight={500} initialTasks={tasks} category={selectedTab} />
     </YStack>
   )
 }
@@ -87,13 +105,21 @@ const tasks = [
     selectedItem: null,
   },
 ]
+interface CardType {
+  id: number
+  title: string
+  description: string
+  selectedItem: string
+  showDropdown: boolean
+}
 
-const CardWithDropdown = ({ initialTasks, category }) => {
+const CardWithDropdown = ({ initialTasks, category, containerHeight }) => {
   const [cards, setCards] = useState(initialTasks || [])
   const [isCardTitleEditing, setIsCardTitleEditing] = useState(null) // track which card is being edited
   const [isCardDescriptionEditing, setIsCardDescriptionEditing] = useState(null) // track which card is being edited
   const scrollViewRef = useRef<RNScrollView>(null)
   const theme = useTheme()
+  const { email } = useEmailStore()
 
   // Toggle dropdown visibility for a specific card
   const toggleDropdown = (id) => {
@@ -113,15 +139,67 @@ const CardWithDropdown = ({ initialTasks, category }) => {
     )
   }
 
+  useEffect(() => {
+    getCardsByEmail(email)
+  }, [email])
+
+  useEffect(() => {
+    // Save to Firebase whenever cards change
+    saveCardsToFirebase()
+  }, [cards]) // Dependency array contains cards
+
+  const getCardsByEmail = async (email: string) => {
+    try {
+      const cardsRef = collection(db, 'cards')
+      const q = query(cardsRef, where('email', '==', email))
+      const querySnapshot = await getDocs(q)
+      const fetchedCards: CardType[] = []
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as DocumentData
+        if (Array.isArray(data.cards)) {
+          fetchedCards.push(...data.cards)
+        }
+      })
+
+      setCards(fetchedCards)
+    } catch (e) {
+      console.error('Error fetching documents: ', e)
+    }
+  }
   const saveCardsToFirebase = async () => {
     try {
-      const docRef = await addDoc(collection(db, 'cards'), {
-        cards: cards, // Save the entire array
-      })
-      console.log('Document written with ID: ', docRef.id)
+      // Reference to the cards collection
+      const cardsRef = collection(db, 'cards')
+
+      // Query to find documents with the same email
+      const q = query(cardsRef, where('email', '==', email))
+      const querySnapshot = await getDocs(q)
+
+      if (!querySnapshot.empty) {
+        // If the document exists, update it
+        querySnapshot.forEach(async (docSnap) => {
+          const docRef = doc(db, 'cards', docSnap.id)
+          await setDoc(docRef, { cards: cards }, { merge: true })
+          console.log('Document updated with ID: ', docSnap.id)
+        })
+      } else {
+        // If no document exists, create a new one
+        const newDocRef = await addDoc(collection(db, 'cards'), {
+          cards: cards,
+          email: email,
+        })
+        console.log('New document created with ID: ', newDocRef.id)
+      }
     } catch (e) {
-      console.error('Error adding document: ', e)
+      console.error('Error saving documents: ', e)
     }
+  }
+
+  const handleDeleteCard = (id) => {
+    const updatedCards = cards.filter((card) => card.id !== id)
+
+    setCards(updatedCards)
   }
 
   // Add a new card to the list
@@ -134,20 +212,19 @@ const CardWithDropdown = ({ initialTasks, category }) => {
       showDropdown: false,
     }
     setCards((prevCards) => [...prevCards, newCard])
+    saveCardsToFirebase()
 
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true })
     }
   }
 
-  // Update the title of a specific card
   const setCardTitle = (id, newTitle) => {
     setCards((prevCards) =>
       prevCards.map((card) => (card.id === id ? { ...card, title: newTitle } : card))
     )
   }
 
-  // Update the description of a specific card
   const setCardDescription = (id, newDescription) => {
     setCards((prevCards) =>
       prevCards.map((card) => (card.id === id ? { ...card, description: newDescription } : card))
@@ -161,6 +238,7 @@ const CardWithDropdown = ({ initialTasks, category }) => {
       justifyContent="center"
       alignItems="center"
       padding="$4"
+      height={containerHeight ? containerHeight : 300}
       width={'100%'}
     >
       <Button
@@ -191,17 +269,28 @@ const CardWithDropdown = ({ initialTasks, category }) => {
               <Card
                 key={card.id}
                 width={350}
-                height={isCardDescriptionEditing === card.id ? 250 : 200}
+                height={isCardDescriptionEditing === card.id ? 250 : 170}
                 borderRadius="$4"
                 shadowOpacity={0.2}
                 padding="$3"
                 mb="$4"
                 backgroundColor={theme.cardBackground}
               >
-                {/* Editable Card Title */}
+                <Button
+                  onPress={() => handleDeleteCard(card.id)}
+                  position="absolute"
+                  top={5}
+                  right={5}
+                  borderRadius="$6"
+                  backgroundColor="black"
+                  color="white"
+                >
+                  X
+                </Button>
                 {isCardTitleEditing === card.id ? (
                   <Input
                     onChangeText={(text) => setCardTitle(card.id, text)}
+                    value=""
                     onBlur={() => setIsCardTitleEditing(null)}
                     onFocus={() => setIsCardTitleEditing(card.id)}
                     placeholder="Card Title"
@@ -241,6 +330,7 @@ const CardWithDropdown = ({ initialTasks, category }) => {
                       backgroundColor="white"
                       padding="$3"
                       color="black"
+                      multiline={true}
                       height={150}
                     />
                     <Button
@@ -270,16 +360,25 @@ const CardWithDropdown = ({ initialTasks, category }) => {
                       {card.description}
                     </Text>
 
-                    <Button
-                      width={80}
-                      onPress={() => toggleDropdown(card.id)}
-                      borderRadius="$3"
-                      backgroundColor="white"
-                      padding="$1"
-                      mt="$2"
-                    >
-                      Status
-                    </Button>
+                    <XStack width="100%" justifyContent="space-between" alignItems="center" mt="$6">
+                      {/* Status Button */}
+                      <Button
+                        width={80}
+                        onPress={() => toggleDropdown(card.id)}
+                        borderRadius="$3"
+                        backgroundColor="white"
+                        padding="$1"
+                      >
+                        Status
+                      </Button>
+
+                      {/* Status Text */}
+                      {card.selectedItem && (
+                        <Text fontSize="$5" ta="right">
+                          {card.selectedItem}
+                        </Text>
+                      )}
+                    </XStack>
                   </YStack>
                 )}
 
@@ -345,11 +444,11 @@ const CardWithDropdown = ({ initialTasks, category }) => {
                 )}
 
                 {/* Display Selected Item */}
-                {card.selectedItem && (
+                {/* {card.selectedItem && (
                   <Text mt="$2" fontSize="$5" ta="right">
                     {card.selectedItem}
                   </Text>
-                )}
+                )} */}
               </Card>
             )
         )}
@@ -357,12 +456,35 @@ const CardWithDropdown = ({ initialTasks, category }) => {
     </YStack>
   )
 }
-const TabSelect = ({ theme }) => {
+const TabSelect = ({ theme, onTabSelect }) => {
+  const [activeTab, setActiveTab] = useState('Todo')
+
+  const handleTabClick = (tab) => {
+    setActiveTab(tab)
+    if (onTabSelect) {
+      onTabSelect(tab) // Pass the selected tab to the callback
+    }
+  }
+
+  const getButtonStyle = (tab) => ({
+    backgroundColor: activeTab === tab ? 'black' : '#E8E8E8',
+    color: activeTab === tab ? 'white' : theme.inactiveTextColor,
+    width: 120,
+    margin: '0 10px',
+    padding: '10px 0', // Ensure padding for a better visual effect
+  })
+
   return (
-    <XStack padding="$4" mt="$10" ai="center" alignItems="center" width="100%">
-      <Button width={120}>Todo</Button>
-      <Button>Progress</Button>
-      <Button>Completed</Button>
+    <XStack padding="$2" mt="$4" ai="center" alignItems="center" width="100%">
+      <Button style={getButtonStyle('Todo')} onPress={() => handleTabClick('Todo')}>
+        Todo
+      </Button>
+      <Button style={getButtonStyle('Progress')} onPress={() => handleTabClick('Progress')}>
+        Progress
+      </Button>
+      <Button style={getButtonStyle('Completed')} onPress={() => handleTabClick('Completed')}>
+        Completed
+      </Button>
     </XStack>
   )
 }
@@ -464,7 +586,7 @@ const CardComponent = ({
             width={80}
             onPress={() => toggleDropdown(card.id)}
             borderRadius="$3"
-            backgroundColor="white"
+            backgroundColor="#E8E8E8"
             padding="$1"
             mt="$2"
           >

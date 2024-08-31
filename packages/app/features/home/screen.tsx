@@ -17,28 +17,32 @@ import { useState } from 'react'
 import { Platform } from 'react-native'
 import { signInWithEmail, signUpWithEmail } from '../../api/api'
 import { useLink } from 'solito/navigation'
-
+import { useEmailStore } from '../../store/store'
 // import { signUpWithEmail } from '../../config/firebase-config'
 
 export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
-  const [email, setEmail] = useState('')
+  const [emailInput, setEmailInput] = useState('')
   const [password, setPassword] = useState('')
   const linkTarget = pagesMode ? '/pages-example-user' : '/user'
   const linkProps = useLink({
     href: `${linkTarget}/nate`,
   })
 
+  const { email, setEmail } = useEmailStore()
+
   const handleSignin = async () => {
     let response
     try {
       console.log('Signing up...', JSON.stringify(email))
-      response = await signInWithEmail(email, password)
+      response = await signInWithEmail(emailInput, password)
 
       console.log('Sign-up successful:', response)
     } catch (error) {
       console.error('Error during sign-up:', error)
     }
     if (response) {
+      setEmail(emailInput)
+      console.log(emailInput)
       linkProps.onPress()
     }
   }
@@ -73,7 +77,7 @@ export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
         <Input
           onChangeText={(text) => {
             const email = String(text)
-            setEmail(email)
+            setEmailInput(email)
             console.log(email)
           }}
           placeholder="Email"
