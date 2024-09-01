@@ -71,7 +71,7 @@ export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
           Welcome to Monoboard.
         </H1>
         <Paragraph col="$color10" ta="center">
-          Already a user signin
+          Not a user? Sign up
         </Paragraph>
         <Separator />
         <Input
@@ -97,12 +97,13 @@ export function HomeScreen({ pagesMode = false }: { pagesMode?: boolean }) {
           backgroundColor="white"
           padding="$3"
           color="black"
+          secureTextEntry={true}
         />
 
         <Separator />
       </YStack>
 
-      <Button onPress={handleSignin}>Sign Up</Button>
+      <Button onPress={handleSignin}>Sign In</Button>
 
       {/* <SheetDemo /> */}
     </YStack>
